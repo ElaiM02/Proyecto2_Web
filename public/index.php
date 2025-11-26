@@ -28,8 +28,8 @@ spl_autoload_register(function ($class) {
 $router = new Router();
 
 // Define routes
-/*$router->add('GET', '/', 'HomeController@index');
-$router->add('GET', '/vehicles', 'VehicleController@index');*/
+$router->add('GET', '/', 'HomeController@index');
+$router->add('GET', '/tickets', 'TicketController@index');
 
 try {
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
