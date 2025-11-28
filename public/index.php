@@ -48,6 +48,10 @@ $router = new Router();
 // Define routes
 $router->add('GET', '/', 'HomeController@index');
 $router->add('GET', '/tickets', 'TicketController@index');
+// Crear Ticket
+$router->get('/tickets/create', 'TicketController@create');   // Mostrar formulario
+$router->post('/tickets/create', 'TicketController@store');   // Guardar ticket
+
 
 // Auth Routes
 $router->add('GET', '/login', 'AuthController@login');

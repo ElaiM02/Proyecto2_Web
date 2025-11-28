@@ -1,6 +1,9 @@
 <?php require __DIR__ . '/../layouts/header.php'; ?>
 
 <h1>Listado de Tickets</h1>
+    <a href="/tickets/create" class="btn btn-primary mb-3">
+    Crear Ticket
+</a>
 
 <table>
     <thead>
