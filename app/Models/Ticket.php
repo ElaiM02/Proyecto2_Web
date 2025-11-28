@@ -9,7 +9,7 @@ use Exception;
 class Ticket extends Model
 {
     /**
-     * Listar tickets (ya lo tenías)
+     * Listar todos los tickets para el index
      */
     public static function all()
     {
@@ -25,10 +25,11 @@ class Ticket extends Model
             JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
             ORDER BY t.creado_en DESC
         ");
+
         $stmt->execute();
+
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
-
 
     /**
      * Tipos de ticket para el SELECT
@@ -40,13 +41,14 @@ class Ticket extends Model
             FROM ticket_tipo
             ORDER BY nombre
         ");
+
         $stmt->execute();
+
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-
     /**
-     * Obtener ID del estado (NO_ASIGNADO)
+     * Obtener ID de un estado por nombre (ej: 'NO_ASIGNADO')
      */
     protected static function estadoId(string $nombre): int
     {
@@ -56,6 +58,7 @@ class Ticket extends Model
             WHERE nombre = :nombre
             LIMIT 1
         ");
+
         $stmt->execute([':nombre' => $nombre]);
 
         $id = $stmt->fetchColumn();
@@ -64,16 +67,15 @@ class Ticket extends Model
             throw new Exception("No existe el estado '$nombre' en ticket_estado");
         }
 
-        return (int)$id;
+        return (int) $id;
     }
-
 
     /**
      * Crear ticket + primera entrada en ticket_entrada
      */
     public static function crear(string $titulo, string $descripcion, int $tipo, int $creador)
     {
-        $pdo = self::connection();
+        $pdo           = self::connection();
         $estadoInicial = self::estadoId('NO_ASIGNADO');
 
         try {
@@ -99,14 +101,14 @@ class Ticket extends Model
             ");
 
             $stmt->execute([
-                ':titulo'    => $titulo,
+                ':titulo'      => $titulo,
                 ':descripcion' => $descripcion,
-                ':tipo'      => $tipo,
-                ':estado'    => $estadoInicial,
-                ':creador'   => $creador
+                ':tipo'        => $tipo,
+                ':estado'      => $estadoInicial,
+                ':creador'     => $creador,
             ]);
 
-            $ticketId = $pdo->lastInsertId();
+            $ticketId = (int) $pdo->lastInsertId();
 
             // Insertar entrada inicial
             $stmt2 = $pdo->prepare("
@@ -130,15 +132,72 @@ class Ticket extends Model
                 ':ticket' => $ticketId,
                 ':autor'  => $creador,
                 ':texto'  => $descripcion,
-                ':estado' => $estadoInicial
+                ':estado' => $estadoInicial,
             ]);
 
             $pdo->commit();
-            return $ticketId;
 
+            return $ticketId;
         } catch (Exception $e) {
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Obtener un ticket con toda la información relacionada
+     */
+    public static function findWithRelations(int $id)
+    {
+        $pdo = self::connection();
+
+        $stmt = $pdo->prepare("
+            SELECT
+                t.*,
+                tt.nombre AS tipo_nombre,
+                te.nombre AS estado_nombre,
+                uc.nombre_completo AS creador_nombre,
+                uo.nombre_completo AS operador_nombre
+            FROM ticket t
+            JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
+            JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+            JOIN usuario       uc ON t.id_usuario_creador = uc.id_usuario
+            LEFT JOIN usuario  uo ON t.id_operador_asignado = uo.id_usuario
+            WHERE t.id_ticket = :id
+            LIMIT 1
+        ");
+
+        $stmt->execute([':id' => $id]);
+
+        return $stmt->fetch(PDO::FETCH_OBJ); // null si no existe
+    }
+
+    /**
+     * Historial (entradas) de un ticket
+     */
+    public static function entradas(int $idTicket): array
+    {
+        $pdo = self::connection();
+
+        $stmt = $pdo->prepare("
+            SELECT
+                e.*,
+                u.nombre_completo AS autor_nombre,
+                ea.nombre AS estado_anterior_nombre,
+                en.nombre AS estado_nuevo_nombre
+            FROM ticket_entrada e
+            JOIN usuario u
+                ON e.id_autor = u.id_usuario
+            LEFT JOIN ticket_estado ea
+                ON e.id_estado_anterior = ea.id_estado_ticket
+            LEFT JOIN ticket_estado en
+                ON e.id_estado_nuevo = en.id_estado_ticket
+            WHERE e.id_ticket = :id
+            ORDER BY e.creado_en ASC
+        ");
+
+        $stmt->execute([':id' => $idTicket]);
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 }

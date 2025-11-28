@@ -46,18 +46,24 @@ class Router
 
         throw new \Exception('No route found for this URI.');
     }
+protected function callAction($controller, $action, $params = [])
+{
+    // Nombre completo de la clase
+    $className = "App\\Controllers\\{$controller}";
 
-    protected function callAction($controller, $action, $params = [])
-    {
-        $controller = "App\\Controllers\\{$controller}";
-        $controller = new $controller;
+    // Crear instancia del controlador
+    $controllerInstance = new $className;
 
-        if (!method_exists($controller, $action)) {
-            throw new \Exception(
-                "{$controller} does not respond to the {$action} action."
-            );
-        }
-
-        return call_user_func_array([$controller, $action], $params);
+    // Verificar que el método exista
+    if (!method_exists($controllerInstance, $action)) {
+        // IMPORTANTE: aquí usamos el NOMBRE de la clase, no el objeto
+        throw new \Exception(
+            "{$className} does not respond to the {$action} action."
+        );
     }
+
+    // Llamar al método con los parámetros de la ruta
+    return call_user_func_array([$controllerInstance, $action], $params);
+}
+
 }

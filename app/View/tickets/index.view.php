@@ -24,7 +24,8 @@
                     <td><?= htmlspecialchars($ticket->tipo_ticket) ?></td>
                     <td><?= htmlspecialchars($ticket->estado_ticket) ?></td>
                     <td><?= date('d/m/Y H:i', strtotime($ticket->creado_en)) ?></td>
-                    <td><a href="/ticket/<?= $ticket->id_ticket ?>">Ver</a></td>
+                    <td><a href="/tickets/show?id=<?= $ticket->id_ticket ?>">Ver</a></td>
+
                 </tr>
         <?php endforeach; ?>
     </tbody>

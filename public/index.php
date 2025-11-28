@@ -51,6 +51,7 @@ $router->add('GET', '/tickets', 'TicketController@index');
 // Crear Ticket
 $router->get('/tickets/create', 'TicketController@create');   // Mostrar formulario
 $router->post('/tickets/create', 'TicketController@store');   // Guardar ticket
+$router->get('/tickets/show', 'TicketController@show');
 
 
 // Auth Routes
