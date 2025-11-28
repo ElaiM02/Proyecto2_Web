@@ -3,10 +3,10 @@
 <div class="container mt-4">
     <h1>Crear Usuario</h1>
 
-    <form action="/users/store" method="POST">
+    <form action="/users/create" method="POST">
         <div class="mb-3">
-            <label for="fullname" class="form-label">Nombre completo</label>
-            <input type="text" class="form-control" id="fullname" name="fullname" required>
+            <label for="nombre_completo" class="form-label">Nombre completo</label>
+            <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" required>
         </div>
 
         <div class="mb-3">
@@ -20,13 +20,17 @@
         </div>
 
         <div class="mb-3">
-            <label for="role" class="form-label">Rol del sistema</label>
-            <select class="form-select" id="role" name="role" required>
-                <option value="">Seleccione un rol</option>
-                <option value="Superadministrador">Superadministrador</option>
-                <option value="Operador">Operador</option>
-                <option value="Usuario">Usuario</option>
+            <label class="form-label">Rol</label>
+            <select class="form-select" name="id_rol" required>
+                <option value="">-- Seleccione un rol --</option>
+                <?php foreach ($roles as $rol): ?>
+                    <option value="<?= $rol['id_rol'] ?>"
+                        <?= ($_POST['id_rol'] ?? '') == $rol['id_rol'] ? 'selected' : '' ?>>                        
+                        <?= htmlspecialchars($rol['nombre']) ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
+            <div class="invalid-feedback">Debe seleccionar un rol válido</div>
         </div>
         <button type="submit" class="btn btn-primary">Guardar</button>
         <a href="/users" class="btn btn-secondary">Cancelar</a>

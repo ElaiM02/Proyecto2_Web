@@ -69,6 +69,8 @@ $router->get('/users/create', 'UserController@create');
 $router->post('/users/create', 'UserController@store');
 $router->get('/users/edit/{id}', 'UserController@edit');
 $router->post('/users/edit/{id}', 'UserController@update');
+$router->get('/users/deactivate/{id}', 'UserController@deactivate');
+
 
 try {
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

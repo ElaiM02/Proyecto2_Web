@@ -28,8 +28,8 @@ class User extends Model
      */
     public static function all()
     {
-        $statement = self::connection()->query("SELECT usuario.*, rol.descripcion AS rol_descripcion
-            FROM usuario INNER JOIN rol ON usuario.id_rol = rol.id_rolORDER BY usuario.id_usuario DESC");
+        $statement = self::connection()->query("SELECT usuario.*, rol.nombre AS rol_nombre
+            FROM usuario INNER JOIN rol ON usuario.id_rol = rol.id_rol ORDER BY usuario.id_usuario DESC");
         return $statement->fetchAll(PDO::FETCH_OBJ);
     }
 

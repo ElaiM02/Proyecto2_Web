@@ -3,15 +3,15 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Model;
 use App\Models\User;
 
 class UserController extends Controller
 {
     public function __construct()
     {
-        // Solo SUPERADMIN puede acceder a este controlador
-        if (!isset($_SESSION['user']) || $_SESSION['user']['rol_nombre'] !== 'SUPERADMIN') {
-            header('Location: /users');
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
             exit;
         }
     }
@@ -20,15 +20,15 @@ class UserController extends Controller
     public function index()
     {
         $usuarios = User::all();
-        return $this->view('users/index', ['user' => $usuarios]);
+        return $this->view('users/index', ['usuarios' => $usuarios]);
     }
 
     // Mostrar formulario para crear usuario
     public function create()
     {
         // Obtener roles para el select
-        $roles = self::connection()->query("SELECT id_rol, nombre FROM rol ORDER BY nombre")->fetchAll();
-        return $this->view('uesrs/create', ['roles' => $roles]);
+        $roles = Model::connection()->query("SELECT id_rol, nombre FROM rol ORDER BY nombre")->fetchAll();
+        return $this->view('users/create', ['roles' => $roles]);
     }
 
     // Guardar nuevo usuario
@@ -45,7 +45,7 @@ class UserController extends Controller
         if (empty($data['nombre_completo']) || empty($data['username']) || empty($data['password'])) {
             return $this->view('users/create', [
                 'error' => 'Todos los campos son obligatorios',
-                'roles' => self::connection()->query("SELECT id_rol, nombre FROM rol")->fetchAll()
+                'roles' => Model::connection()->query("SELECT id_rol, nombre FROM rol")->fetchAll()
             ]);
         }
 
@@ -53,7 +53,7 @@ class UserController extends Controller
         if (User::findByUsername($data['username'])) {
             return $this->view('users/create', [
                 'error' => 'El nombre de usuario ya está en uso',
-                'roles' => self::connection()->query("SELECT id_rol, nombre FROM rol")->fetchAll()
+                'roles' => Model::connection()->query("SELECT id_rol, nombre FROM rol")->fetchAll()
             ]);
         }
 
@@ -66,7 +66,7 @@ class UserController extends Controller
     public function edit($id)
     {
         $usuario = User::find($id);
-        $roles = self::connection()->query("SELECT id_rol, nombre FROM rol ORDER BY nombre")->fetchAll();
+        $roles = Model::connection()->query("SELECT id_rol, nombre FROM rol ORDER BY nombre")->fetchAll();
 
         if (!$usuario) {
             header('Location: /users');
@@ -101,7 +101,7 @@ class UserController extends Controller
         // Validar username único (excepto el usuario actual)
         $existe = User::findByUsername($data['username']);
         if ($existe && $existe->id_usuario != $id) {
-            $roles = self::connection()->query("SELECT id_rol, nombre FROM rol")->fetchAll();
+            $roles = Model::connection()->query("SELECT id_rol, nombre FROM rol")->fetchAll();
             return $this->view('users/edit', [
                 'usuario' => $usuarioActual,
                 'roles'   => $roles,
@@ -117,13 +117,12 @@ class UserController extends Controller
     // Desactivar usuario (soft delete)
     public function deactivate($id)
     {
-        // No permitir desactivar al propio superadmin
         if ($id == $_SESSION['user']['id']) {
-            header('Location: /users');
-            exit;
+            $_SESSION['error'] = 'No puedes desactivarte a ti mismo';
+        } else {
+            User::deactivate($id);
+            $_SESSION['success'] = 'Usuario desactivado correctamente';
         }
-
-        User::deactivate($id);
         header('Location: /users');
         exit;
     }
