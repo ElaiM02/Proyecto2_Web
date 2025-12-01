@@ -11,25 +11,48 @@ class Ticket extends Model
     /**
      * Listar todos los tickets para el index
      */
-    public static function all()
-    {
-        $stmt = self::connection()->prepare("
-            SELECT
-                t.id_ticket,
-                t.titulo,
-                tt.nombre AS tipo_ticket,
-                te.nombre AS estado_ticket,
-                t.creado_en
-            FROM ticket t
-            JOIN ticket_tipo tt ON t.id_tipo_ticket = tt.id_tipo_ticket
-            JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
-            ORDER BY t.creado_en DESC
-        ");
+public static function all()
+{
+    $sql = "
+        SELECT
+            t.id_ticket,
+            t.titulo,
+            tt.nombre AS tipo_ticket,
+            te.nombre AS estado_ticket,
+            t.creado_en,
+            uc.nombre_completo AS creador_nombre
+        FROM ticket t
+        JOIN ticket_tipo tt ON t.id_tipo_ticket = tt.id_tipo_ticket
+        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+        JOIN usuario uc ON t.id_usuario_creador = uc.id_usuario
+        WHERE 1=1
+    ";
 
-        $stmt->execute();
+    $rol = $_SESSION['user']['rol_nombre'] ?? '';
 
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    // 1. USUARIO → solo ve sus propios tickets
+    if ($rol === 'USUARIO') {
+        $sql .= " AND t.id_usuario_creador = :user_id";
+
+    // 2. OPERADOR → solo ve tickets NO_ASIGNADO
+    } elseif ($rol === 'OPERADOR') {
+        $sql .= " AND te.nombre = 'NO_ASIGNADO'";
+
     }
+    // 3. SUPERADMIN → ve TODO (no agregamos nada)
+
+    $sql .= " ORDER BY t.creado_en DESC";
+
+    $stmt = self::connection()->prepare($sql);
+
+    // Solo bind si es USUARIO
+    if ($rol === 'USUARIO') {
+        $stmt->bindValue(':user_id', $_SESSION['user']['id_usuario'], PDO::PARAM_INT);
+    }
+
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_OBJ);
+}
 
     /**
      * Tipos de ticket para el SELECT

@@ -39,7 +39,9 @@ class AuthController extends Controller
                         'id_usuario' => $user->id_usuario,
                         'username'   => $user->username,
                         'nombre'     => $user->nombre_completo,
-                        'id_rol'     => $user->id_rol
+                        'id_rol'     => $user->id_rol,
+                        'rol_nombre'      => $user->rol_nombre,
+                        'activo'          => $user->activo ?? 1
                     ];
                     header('Location: /');
                     exit;
@@ -54,7 +56,9 @@ class AuthController extends Controller
                     'id_usuario' => $user->id_usuario,
                     'username'   => $user->username,
                     'nombre'     => $user->nombre_completo,
-                    'id_rol'     => $user->id_rol
+                    'id_rol'     => $user->id_rol,
+                    'rol_nombre'      => $user->rol_nombre,
+                    'activo'          => $user->activo ?? 1
                 ];
                 header('Location: /');
                 exit;

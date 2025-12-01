@@ -28,9 +28,14 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="/tickets">Tickets</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/users">Usuarios</a>
-                            </li>
+                            <?php 
+                            $rol = trim($_SESSION['user']['rol_nombre'] ?? '');
+                            if (strtoupper($rol) === 'SUPERADMIN'): 
+                            ?>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/users">Usuarios</a>
+                                </li>
+                            <?php endif; ?>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                                     aria-expanded="false">

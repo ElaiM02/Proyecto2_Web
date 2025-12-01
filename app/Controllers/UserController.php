@@ -14,6 +14,12 @@ class UserController extends Controller
             header('Location: /login');
             exit;
         }
+
+        // OPCIONAL: Solo SUPERADMIN puede gestionar usuarios
+        if ($_SESSION['user']['rol_nombre'] !== 'SUPERADMIN') {
+            header('Location: /home');
+            exit;
+        }
     }
 
     // Listar todos los usuarios
