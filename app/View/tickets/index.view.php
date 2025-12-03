@@ -35,6 +35,44 @@
 <?php endif; ?>
 
 <!-- TABLA DE TICKETS -->
+ <form method="GET" action="/tickets" class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <label class="form-label">Usuario (nombre o username)</label>
+        <input type="text" name="usuario" class="form-control"
+               value="<?= htmlspecialchars($_GET['usuario'] ?? '') ?>">
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">Tipo de ticket</label>
+        <select name="tipo" class="form-select">
+            <option value="0">Todos</option>
+            <?php foreach($tipos as $t): ?>
+                <option value="<?= $t->id_tipo_ticket ?>"
+                    <?= (($_GET['tipo'] ?? 0) == $t->id_tipo_ticket) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($t->nombre) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Desde</label>
+        <input type="date" name="desde" class="form-control"
+               value="<?= htmlspecialchars($_GET['desde'] ?? '') ?>">
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Hasta</label>
+        <input type="date" name="hasta" class="form-control"
+               value="<?= htmlspecialchars($_GET['hasta'] ?? '') ?>">
+    </div>
+
+    <div class="col-md-1 d-flex align-items-end">
+        <button class="btn btn-primary w-100">Buscar</button>
+    </div>
+
+</form>
 <div class="table-responsive">
     <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-dark">

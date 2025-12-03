@@ -2,10 +2,8 @@
 
 <div class="container mt-4">
     <h1>Crear Ticket de Soporte</h1>
-    
-    <a href="/tickets/create" class="btn btn-primary mb-3">
-    Crear Ticket
-</a>
+
+
 
     <?php if (!empty($errors)): ?>
         <div class="alert alert-danger">

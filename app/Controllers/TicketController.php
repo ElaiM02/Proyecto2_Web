@@ -9,12 +9,22 @@ class TicketController
     /**
      * Lista de tickets
      */
-    public function index()
-    {
-        $tickets = Ticket::all();
-        require __DIR__ . '/../View/tickets/index.view.php';
-    }
+   public function index()
+{
+    // Leer parámetros de búsqueda
+    $usuario = trim($_GET['usuario'] ?? '');
+    $tipo    = isset($_GET['tipo']) ? (int) $_GET['tipo'] : 0;
+    $desde   = $_GET['desde'] ?? '';
+    $hasta   = $_GET['hasta'] ?? '';
 
+    // Obtener tickets filtrados
+    $tickets = Ticket::buscarTickets($usuario, $tipo, $desde, $hasta);
+
+    // Tipos de ticket para el selector
+    $tipos = Ticket::tipos();
+
+    require __DIR__ . '/../View/tickets/index.view.php';
+}
     /**
      * Mostrar formulario de creación
      */
