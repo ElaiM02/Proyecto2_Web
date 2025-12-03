@@ -69,7 +69,7 @@
     <?php if (in_array($_SESSION['user']['rol_nombre'], ['OPERADOR', 'SUPERADMIN'])): ?>
         <div class="mb-4">
             <a href="/tickets/reply/<?= $ticket->id_ticket ?>" class="btn btn-primary btn-lg">
-                Responder Ticket
+                Asignación de Ticket
             </a>
         </div>
     <?php endif; ?>
