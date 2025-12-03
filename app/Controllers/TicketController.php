@@ -20,6 +20,24 @@ class TicketController
     // Obtener tickets filtrados
     $tickets = Ticket::buscarTickets($usuario, $tipo, $desde, $hasta);
 
+// Tomamos el rol desde sesión
+     $rol       = strtoupper(trim($_SESSION['user']['rol_nombre'] ?? ''));
+     $idUsuario = (int)($_SESSION['user']['id_usuario'] ?? 0);
+
+ // Elegir qué tickets cargar según el rol
+    if ($rol === 'OPERADOR') {
+        // OPERADOR → solo tickets NO_ASIGNADO
+        $tickets = Ticket::buscarTickets($usuario, $tipo, $desde, $hasta, 'NO_ASIGNADO', null);
+
+    } elseif ($rol === 'USUARIO') {
+        // USUARIO → solo tickets creados por él
+       $tickets = Ticket::buscarTicketsDeUsuario($usuario, $tipo, $desde, $hasta, $idUsuario);
+
+    } else {
+        // SUPERADMIN (u otros) → todos los tickets
+        $tickets = Ticket::buscarTickets($usuario, $tipo, $desde, $hasta, null, null);
+    }
+
     // Tipos de ticket para el selector
     $tipos = Ticket::tipos();
 

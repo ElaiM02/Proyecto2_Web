@@ -226,8 +226,13 @@ public static function all()
 
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
-    public static function buscarTickets(string $usuario, int $idTipo, string $desde, string $hasta): array
-{
+   public static function buscarTickets(
+    string $usuario,
+    int $idTipo,
+    string $desde,
+    string $hasta,
+    ?string $soloEstado = null   
+    ): array {
     $pdo = self::connection();
 
     $sql = "
@@ -242,7 +247,7 @@ public static function all()
         JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
         JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
         JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
-        WHERE 1 = 1
+        WHERE 1=1
     ";
 
     $params = [];
@@ -259,12 +264,18 @@ public static function all()
 
     if ($desde !== '') {
         $sql .= " AND t.creado_en >= :desde";
-        $params[':desde'] = $desde . " 00:00:00";
+        $params[':desde'] = $desde . ' 00:00:00';
     }
 
     if ($hasta !== '') {
         $sql .= " AND t.creado_en <= :hasta";
-        $params[':hasta'] = $hasta . " 23:59:59";
+        $params[':hasta'] = $hasta . ' 23:59:59';
+    }
+
+    
+    if ($soloEstado !== null) {
+        $sql .= " AND te.nombre = :estado";
+        $params[':estado'] = $soloEstado;
     }
 
     $sql .= " ORDER BY t.creado_en DESC";
@@ -274,6 +285,7 @@ public static function all()
 
     return $stmt->fetchAll(PDO::FETCH_OBJ);
 }
+
 public static function ticketsAsignados(int $idOperador): array
 {
     $pdo = self::connection();
@@ -293,6 +305,110 @@ public static function ticketsAsignados(int $idOperador): array
     ");
 
     $stmt->execute([':op' => $idOperador]);
+
+    return $stmt->fetchAll(PDO::FETCH_OBJ);
+}
+public static function buscarTicketsNoAsignados(string $usuario, int $idTipo, string $desde, string $hasta): array
+{
+    $pdo = self::connection();
+
+    $sql = "
+        SELECT
+            t.id_ticket,
+            t.titulo,
+            tt.nombre AS tipo_ticket,
+            te.nombre AS estado_ticket,
+            t.creado_en,
+            u.nombre_completo AS usuario_nombre
+        FROM ticket t
+        JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
+        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+        JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
+        WHERE te.nombre = 'NO_ASIGNADO'
+    ";
+
+    $params = [];
+
+    if ($usuario !== '') {
+        $sql .= " AND (u.nombre_completo LIKE :usuario OR u.username LIKE :usuario)";
+        $params[':usuario'] = '%' . $usuario . '%';
+    }
+
+    if ($idTipo > 0) {
+        $sql .= " AND t.id_tipo_ticket = :tipo";
+        $params[':tipo'] = $idTipo;
+    }
+
+    if ($desde !== '') {
+        $sql .= " AND t.creado_en >= :desde";
+        $params[':desde'] = $desde . ' 00:00:00';
+    }
+
+    if ($hasta !== '') {
+        $sql .= " AND t.creado_en <= :hasta";
+        $params[':hasta'] = $hasta . ' 23:59:59';
+    }
+
+    $sql .= " ORDER BY t.creado_en DESC";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->fetchAll(PDO::FETCH_OBJ);
+}
+
+public static function buscarTicketsDeUsuario(
+    string $usuario,
+    int $idTipo,
+    string $desde,
+    string $hasta,
+    int $idCreador
+): array {
+    $pdo = self::connection();
+
+    $sql = "
+        SELECT
+            t.id_ticket,
+            t.titulo,
+            tt.nombre AS tipo_ticket,
+            te.nombre AS estado_ticket,
+            t.creado_en,
+            u.nombre_completo AS usuario_nombre
+        FROM ticket t
+        JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
+        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+        JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
+        WHERE t.id_usuario_creador = :creador
+    ";
+
+    $params = [
+        ':creador' => $idCreador,
+    ];
+
+    if ($usuario !== '') {
+        $sql .= " AND (u.nombre_completo LIKE :usuario OR u.username LIKE :usuario)";
+        $params[':usuario'] = '%' . $usuario . '%';
+    }
+
+    if ($idTipo > 0) {
+        $sql .= " AND t.id_tipo_ticket = :tipo";
+        $params[':tipo'] = $idTipo;
+    }
+
+    if ($desde !== '') {
+        $sql .= " AND t.creado_en >= :desde";
+        $params[':desde'] = $desde . ' 00:00:00';
+    }
+
+    if ($hasta !== '') {
+        $sql .= " AND t.creado_en <= :hasta";
+        $params[':hasta'] = $hasta . ' 23:59:59';
+    }
+
+    $sql .= " ORDER BY t.creado_en DESC";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
 
     return $stmt->fetchAll(PDO::FETCH_OBJ);
 }
