@@ -79,6 +79,8 @@ class TicketController
         $titulo      = trim($_POST['titulo'] ?? '');
         $descripcion = trim($_POST['descripcion'] ?? '');
         $tipo        = (int)($_POST['tipo'] ?? 0);
+        $creador     = $_SESSION['user']['id_usuario'];
+
 
         $errores = [];
 
@@ -94,6 +96,27 @@ class TicketController
             $errores[] = "Debes seleccionar un tipo.";
         }
 
+        // SUBIDA DE IMAGEN 
+        $imagen = null;
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['imagen'];
+            $maxSize = 3 * 1024 * 1024;
+
+            // 1. Validar tamaño
+            if ($file['size'] > $maxSize) {
+                $errores[] = "La imagen no puede pesar más de 3MB.";
+            } 
+            // 2. Validar extensión del archivo (100% confiable y sin extensiones)
+            else {
+                $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                $permitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+                if (!in_array($extension, $permitidas)) {
+                    $errores[] = "Solo se permiten imágenes: JPG, JPEG, PNG, GIF o WebP.";
+                }
+            }
+        }
+
         if (!empty($errores)) {
             $_SESSION['ticket_errors'] = $errores;
             $_SESSION['ticket_old'] = [
@@ -101,6 +124,35 @@ class TicketController
                 'descripcion' => $descripcion,
                 'tipo'        => $tipo,
             ];
+            header('Location: /tickets/create');
+            exit;
+        }
+
+        // SUBIR IMAGEN SI PASÓ LAS VALIDACIONES
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK && empty($errores)) {
+            $uploadDir = __DIR__ . '/../../public/uploads/tickets/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $filename = 'ticket_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
+            $destination = $uploadDir . $filename;
+
+            if (move_uploaded_file($file['tmp_name'], $destination)) {
+                $imagen = '/uploads/tickets/' . $filename;
+            }
+        }
+
+        try {
+            $id = Ticket::crear($titulo, $descripcion, $tipo, $creador, $imagen);
+
+            $_SESSION['ticket_success'] = "Ticket creado correctamente (#{$id})";
+            header('Location: /tickets');
+            exit;
+
+        } catch (\Exception $e) {
+            $_SESSION['ticket_errors'] = ["Error del sistema: " . $e->getMessage()];
             header('Location: /tickets/create');
             exit;
         }

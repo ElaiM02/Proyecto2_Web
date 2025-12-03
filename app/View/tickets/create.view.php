@@ -2,8 +2,10 @@
 
 <div class="container mt-4">
     <h1>Crear Ticket de Soporte</h1>
-
-
+    
+    <a href="/tickets/create" class="btn btn-primary mb-3">
+    Crear Ticket
+</a>
 
     <?php if (!empty($errors)): ?>
         <div class="alert alert-danger">
@@ -21,7 +23,7 @@
         </div>
     <?php endif; ?>
 
-    <form action="/tickets/create" method="POST">
+    <form action="/tickets/create" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
 
         <!-- Título -->
         <div class="mb-3">
@@ -57,6 +59,14 @@
                       name="descripcion"
                       rows="5"
                       required><?= htmlspecialchars($old['descripcion'] ?? '') ?></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label for="imagen" class="form-label">Imagen del problema (opcional)</label>
+            <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
+            <div class="form-text">
+                Subí una captura de pantalla si te ayuda a explicar el problema. Máximo 2MB.
+            </div>
         </div>
 
         <button class="btn btn-primary">Crear Ticket</button>

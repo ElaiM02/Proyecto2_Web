@@ -118,3 +118,7 @@ INSERT INTO ticket (titulo, descripcion_inicial, id_tipo_ticket, id_estado_ticke
 ('Impresora del piso 3 no responde', 'La impresora HP marca "Error 79" y no imprime nada.', 2, 1, 1, NULL),
 ('Instalación de Adobe Acrobat Pro', 'Por favor instalar Adobe Acrobat en mi equipo para firmar documentos.', 1, 5, 2, 3),
 ('Pantalla azul en equipo de contabilidad', 'El equipo de Sandra se reinicia cada 20 minutos con pantalla azul. ¡Urgente!', 2, 4, 1, 4);
+
+
+ALTER TABLE ticket 
+ADD COLUMN imagen VARCHAR(255) NULL AFTER descripcion_inicial;

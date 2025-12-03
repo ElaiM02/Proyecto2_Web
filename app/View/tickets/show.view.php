@@ -77,18 +77,21 @@
             <h5 class="mb-3"><strong>Descripción inicial</strong></h5>
             <div class="bg-light p-3 rounded">
                 <p class="mb-0"><?= nl2br(htmlspecialchars($ticket->descripcion_inicial)) ?></p>
+                <?php if ($ticket->imagen): ?>
+                <div class="mb-4">
+                    <h5><strong>Imagen adjunta:</strong></h5>
+                    <a href="<?= htmlspecialchars($ticket->imagen) ?>" target="_blank">
+                        <img src="<?= htmlspecialchars($ticket->imagen) ?>" 
+                            alt="Imagen del problema" class="img-fluid rounded shadow" 
+                            style="max-height: 500px;">
+                    </a>
+                </div>
+            <?php endif; ?>
+            </div>
+
             </div>
         </div>
     </div>
-
-    <!-- BOTÓN RESPONDER (solo OPERADOR y SUPERADMIN) -->
-    <?php if (in_array($_SESSION['user']['rol_nombre'], ['OPERADOR', 'SUPERADMIN'])): ?>
-        <div class="mb-4">
-            <a href="/tickets/reply/<?= $ticket->id_ticket ?>" class="btn btn-primary btn-lg">
-                Asignación de Ticket
-            </a>
-        </div>
-    <?php endif; ?>
 
     <!-- HISTORIAL -->
     <h3 class="mb-4">Historial de actualizaciones</h3>

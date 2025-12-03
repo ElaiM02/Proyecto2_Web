@@ -96,7 +96,7 @@ public static function all()
     /**
      * Crear ticket + primera entrada en ticket_entrada
      */
-    public static function crear(string $titulo, string $descripcion, int $tipo, int $creador)
+    public static function crear(string $titulo, string $descripcion, int $tipo, int $creador, ?string $imagen = null)
     {
         $pdo           = self::connection();
         $estadoInicial = self::estadoId('NO_ASIGNADO');
@@ -112,14 +112,16 @@ public static function all()
                     id_tipo_ticket,
                     id_estado_ticket,
                     id_usuario_creador,
-                    id_operador_asignado
+                    id_operador_asignado,
+                    imagen
                 ) VALUES (
                     :titulo,
                     :descripcion,
                     :tipo,
                     :estado,
                     :creador,
-                    NULL
+                    NULL,
+                    :imagen
                 )
             ");
 
@@ -129,6 +131,7 @@ public static function all()
                 ':tipo'        => $tipo,
                 ':estado'      => $estadoInicial,
                 ':creador'     => $creador,
+                ':imagen'      => $imagen
             ]);
 
             $ticketId = (int) $pdo->lastInsertId();
