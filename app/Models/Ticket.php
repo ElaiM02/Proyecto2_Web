@@ -271,4 +271,48 @@ public static function all()
 
     return $stmt->fetchAll(PDO::FETCH_OBJ);
 }
+public static function ticketsAsignados(int $idOperador): array
+{
+    $pdo = self::connection();
+
+    $stmt = $pdo->prepare("
+        SELECT
+            t.id_ticket,
+            t.titulo,
+            tt.nombre AS tipo_ticket,
+            te.nombre AS estado_ticket,
+            t.creado_en
+        FROM ticket t
+        JOIN ticket_tipo tt   ON t.id_tipo_ticket   = tt.id_tipo_ticket
+        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+        WHERE t.id_operador_asignado = :op
+        ORDER BY t.creado_en DESC
+    ");
+
+    $stmt->execute([':op' => $idOperador]);
+
+    return $stmt->fetchAll(PDO::FETCH_OBJ);
+}
+
+public static function asignarTicket(int $idTicket, int $idOperador): void
+{
+    $pdo = self::connection();
+
+    // usamos tu helper estadoId('ASIGNADO')
+    $idEstadoAsignado = self::estadoId('ASIGNADO');
+
+    $stmt = $pdo->prepare("
+        UPDATE ticket
+        SET id_operador_asignado = :op,
+            id_estado_ticket     = :estado
+        WHERE id_ticket = :id
+    ");
+
+    $stmt->execute([
+        ':op'     => $idOperador,
+        ':estado' => $idEstadoAsignado,
+        ':id'     => $idTicket,
+    ]);
+}
+
 }

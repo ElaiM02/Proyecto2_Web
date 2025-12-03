@@ -159,4 +159,68 @@ class TicketController
 
         require __DIR__ . '/../View/tickets/show.view.php';
     }
+    public function misAsignados()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    if (!isset($_SESSION['user'])) {
+        header('Location: /login');
+        exit;
+    }
+
+    if (strtoupper($_SESSION['user']['rol_nombre'] ?? '') !== 'OPERADOR') {
+        http_response_code(403);
+        echo "No autorizado";
+        exit;
+    }
+
+    $idOperador = (int) $_SESSION['user']['id_usuario'];
+
+    $tickets = Ticket::ticketsAsignados($idOperador);
+
+    
+    $rol        = strtoupper($_SESSION['user']['rol_nombre'] ?? '');
+    $esOperador = ($rol === 'OPERADOR');
+    $yaAsignado = !empty($ticket->id_operador_asignado);
+    
+
+    require __DIR__ . '/../View/tickets/asignacion.view.php';
+}
+
+public function asignar()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    if (!isset($_SESSION['user'])) {
+        header('Location: /login');
+        exit;
+    }
+
+    if (strtoupper($_SESSION['user']['rol_nombre'] ?? '') !== 'OPERADOR') {
+        http_response_code(403);
+        echo "No autorizado";
+        exit;
+    }
+
+    $idTicket = (int) ($_POST['id_ticket'] ?? 0);
+
+    if ($idTicket <= 0) {
+        http_response_code(400);
+        echo "ID de ticket inválido";
+        exit;
+    }
+
+    $idOperador = (int) $_SESSION['user']['id_usuario'];
+
+    Ticket::asignarTicket($idTicket, $idOperador);
+
+    // volver al detalle del ticket
+    header("Location: /tickets/show?id=" . $idTicket);
+    exit;
+}
+
 }

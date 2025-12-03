@@ -29,6 +29,15 @@
                                 <a class="nav-link" href="/tickets">Tickets</a>
                             </li>
                             <?php 
+                                $rol = trim($_SESSION['user']['rol_nombre'] ?? '');
+                            ?>
+
+                            <?php if (strtoupper($rol) === 'OPERADOR'): ?>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/tickets/asignados">Tickets asignados</a>
+                                </li>
+                            <?php endif; ?>
+                            <?php 
                             $rol = trim($_SESSION['user']['rol_nombre'] ?? '');
                             if (strtoupper($rol) === 'SUPERADMIN'): 
                             ?>

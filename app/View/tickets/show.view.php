@@ -13,6 +13,7 @@
                     <?= htmlspecialchars($ticket->estado_nombre) ?>
                 </span>
             </h1>
+            
             <h4 class="text-muted"><?= htmlspecialchars($ticket->titulo) ?></h4>
         </div>
         <a href="/tickets" class="btn btn-outline-secondary">
@@ -25,11 +26,26 @@
         <div class="alert alert-info">
             <strong>Área de Usuario</strong> – Este es tu ticket. El equipo de soporte lo revisará pronto.
         </div>
-    <?php elseif ($_SESSION['user']['rol_nombre'] === 'OPERADOR'): ?>
-        <div class="alert alert-warning">
-            <strong>Operador</strong> – Puedes responder y actualizar el estado de este ticket.
-        </div>
-    <?php else: ?>
+    <?php elseif ($_SESSION['user']['rol_nombre'] == 'OPERADOR'): ?>
+    <div class="alert alert-warning">
+        <strong>Operador</strong> Puedes responder y actualizar el estado de este ticket.
+    </div>
+
+   <?php if (
+    isset($_SESSION['user']) &&
+    ( $_SESSION['user']['rol_nombre'] ?? '' ) === 'OPERADOR' &&
+    empty($ticket->id_operador_asignado)
+    ): ?>
+    <form action="/tickets/asignar" method="POST" class="mb-3">
+        <input type="hidden" name="id_ticket" value="<?= (int)$ticket->id_ticket ?>">
+        <button type="submit" class="btn btn-primary">
+            Asignación de Ticket
+        </button>
+    </form>
+    <?php endif; ?>
+
+
+<?php else: ?>
         <div class="alert alert-success">
             <strong>Administrador</strong> – Tienes control total sobre este ticket.
         </div>
