@@ -8,56 +8,43 @@ use Exception;
 
 class Ticket extends Model
 {
-    /**
-     * Listar todos los tickets para el index
-     */
-public static function all()
-{
-    $sql = "
-        SELECT
-            t.id_ticket,
-            t.titulo,
-            tt.nombre AS tipo_ticket,
-            te.nombre AS estado_ticket,
-            t.creado_en,
-            uc.nombre_completo AS creador_nombre
-        FROM ticket t
-        JOIN ticket_tipo tt ON t.id_tipo_ticket = tt.id_tipo_ticket
-        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
-        JOIN usuario uc ON t.id_usuario_creador = uc.id_usuario
-        WHERE 1=1
-    ";
+    // Listar todos los tickets para el index
+    public static function all()
+    {
+        $sql = "
+            SELECT t.id_ticket, t.titulo, tt.nombre AS tipo_ticket, te.nombre AS estado_ticket, t.creado_en, uc.nombre_completo AS creador_nombre
+            FROM ticket t
+            JOIN ticket_tipo tt ON t.id_tipo_ticket = tt.id_tipo_ticket
+            JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+            JOIN usuario uc ON t.id_usuario_creador = uc.id_usuario
+            WHERE 1=1
+        ";
 
-    $rol = $_SESSION['user']['rol_nombre'] ?? '';
-    $estado = $ticket->nombre;
+        $rol = $_SESSION['user']['rol_nombre'] ?? '';
+        $estado = $ticket->nombre;
 
-    // 1. USUARIO → solo ve sus propios tickets
-    if ($rol === 'USUARIO') {
-        $sql .= " AND t.id_usuario_creador = :user_id";
+        if ($rol === 'USUARIO') {
+            $sql .= " AND t.id_usuario_creador = :user_id";
 
-    // 2. OPERADOR → solo ve tickets NO_ASIGNADO
-    } elseif ($rol === 'OPERADOR') {
-        $sql .= " AND te.nombre = 'NO_ASIGNADO'";
+        } elseif ($rol === 'OPERADOR') {
+            $sql .= " AND te.nombre = 'NO_ASIGNADO'";
 
-    }
-    // 3. SUPERADMIN → ve TODO (no agregamos nada)
+        }
 
-    $sql .= " ORDER BY t.creado_en DESC";
+        $sql .= " ORDER BY t.creado_en DESC";
 
-    $stmt = self::connection()->prepare($sql);
+        $stmt = self::connection()->prepare($sql);
 
-    // Solo bind si es USUARIO
-    if ($rol === 'USUARIO') {
-        $stmt->bindValue(':user_id', $_SESSION['user']['id_usuario'], PDO::PARAM_INT);
+        if ($rol === 'USUARIO') {
+            $stmt->bindValue(':user_id', $_SESSION['user']['id_usuario'], PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_OBJ);
-}
-
-    /**
-     * Tipos de ticket para el SELECT
-     */
+    
+    // Tipos de ticket
     public static function tipos()
     {
         $stmt = self::connection()->prepare("
@@ -72,7 +59,7 @@ public static function all()
     }
 
     public static function estados()
-{
+    {
     $stmt = self::connection()->prepare("
         SELECT id_estado_ticket, nombre
         FROM ticket_estado
@@ -82,11 +69,10 @@ public static function all()
     $stmt->execute();
 
     return $stmt->fetchAll(PDO::FETCH_OBJ);
-}
+    }
 
-    /**
-     * Obtener ID de un estado por nombre (ej: 'NO_ASIGNADO')
-     */
+
+    // Obtener estado nombre por ID
     public static function estadoId(string $nombre): int
     {
         $stmt = self::connection()->prepare("
@@ -107,9 +93,7 @@ public static function all()
         return (int) $id;
     }
 
-    /**
-     * Crear ticket + primera entrada en ticket_entrada
-     */
+    // Crear ticket
     public static function crear(string $titulo, string $descripcion, int $tipo, int $creador, ?string $imagen = null)
     {
         $pdo           = self::connection();
@@ -118,25 +102,9 @@ public static function all()
         try {
             $pdo->beginTransaction();
 
-            // Insertar ticket
             $stmt = $pdo->prepare("
-                INSERT INTO ticket (
-                    titulo,
-                    descripcion_inicial,
-                    id_tipo_ticket,
-                    id_estado_ticket,
-                    id_usuario_creador,
-                    id_operador_asignado,
-                    imagen
-                ) VALUES (
-                    :titulo,
-                    :descripcion,
-                    :tipo,
-                    :estado,
-                    :creador,
-                    NULL,
-                    :imagen
-                )
+                INSERT INTO ticket (titulo, descripcion_inicial, id_tipo_ticket, id_estado_ticket, id_usuario_creador, id_operador_asignado, imagen) 
+                VALUES (:titulo, :descripcion, :tipo, :estado, :creador, NULL, :imagen)
             ");
 
             $stmt->execute([
@@ -152,20 +120,8 @@ public static function all()
 
             // Insertar entrada inicial
             $stmt2 = $pdo->prepare("
-                INSERT INTO ticket_entrada (
-                    id_ticket,
-                    id_autor,
-                    texto,
-                    id_estado_anterior,
-                    id_estado_nuevo
-                )
-                VALUES (
-                    :ticket,
-                    :autor,
-                    :texto,
-                    NULL,
-                    :estado
-                )
+                INSERT INTO ticket_entrada (id_ticket, id_autor, texto, id_estado_anterior, id_estado_nuevo)
+                VALUES (:ticket, :autor, :texto, NULL, :estado)
             ");
 
             $stmt2->execute([
@@ -184,20 +140,13 @@ public static function all()
         }
     }
 
-    /**
-     * Obtener un ticket con toda la información relacionada
-     */
+    //Obtener Ticket
     public static function findWithRelations(int $id)
     {
         $pdo = self::connection();
 
         $stmt = $pdo->prepare("
-            SELECT
-                t.*,
-                tt.nombre AS tipo_nombre,
-                te.nombre AS estado_nombre,
-                uc.nombre_completo AS creador_nombre,
-                uo.nombre_completo AS operador_nombre
+            SELECT t.*, tt.nombre AS tipo_nombre, te.nombre AS estado_nombre, uc.nombre_completo AS creador_nombre, uo.nombre_completo AS operador_nombre
             FROM ticket t
             JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
             JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
@@ -209,22 +158,16 @@ public static function all()
 
         $stmt->execute([':id' => $id]);
 
-        return $stmt->fetch(PDO::FETCH_OBJ); // null si no existe
+        return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    /**
-     * Historial (entradas) de un ticket
-     */
+    // Historial Ticket
     public static function entradas(int $idTicket): array
     {
         $pdo = self::connection();
 
         $stmt = $pdo->prepare("
-            SELECT
-                e.*,
-                u.nombre_completo AS autor_nombre,
-                ea.nombre AS estado_anterior_nombre,
-                en.nombre AS estado_nuevo_nombre
+            SELECT e.*, u.nombre_completo AS autor_nombre, ea.nombre AS estado_anterior_nombre, en.nombre AS estado_nuevo_nombre
             FROM ticket_entrada e
             JOIN usuario u
                 ON e.id_autor = u.id_usuario
@@ -240,227 +183,198 @@ public static function all()
 
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
-   public static function buscarTickets(
-    string $usuario,
-    int $idTipo,
-    string $desde,
-    string $hasta,
-    ?string $soloEstado = null   
+
+    public static function buscarTickets(
+        string $usuario,
+        int $idTipo,
+        string $desde,
+        string $hasta,
+        ?string $soloEstado = null   
     ): array {
-    $pdo = self::connection();
+        $pdo = self::connection();
 
-    $sql = "
-        SELECT
-            t.id_ticket,
-            t.titulo,
-            tt.nombre AS tipo_ticket,
-            te.nombre AS estado_ticket,
-            t.creado_en,
-            u.nombre_completo AS usuario_nombre
-        FROM ticket t
-        JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
-        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
-        JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
-        WHERE 1=1
-    ";
+        $sql = "
+            SELECT t.id_ticket, t.titulo, tt.nombre AS tipo_ticket, te.nombre AS estado_ticket, t.creado_en, u.nombre_completo AS usuario_nombre
+            FROM ticket t
+            JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
+            JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+            JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
+            WHERE 1=1
+        ";
 
-    $params = [];
+        $params = [];
 
-    if ($usuario !== '') {
-        $sql .= " AND (u.nombre_completo LIKE :usuario OR u.username LIKE :usuario)";
-        $params[':usuario'] = '%' . $usuario . '%';
+        if ($usuario !== '') {
+            $sql .= " AND (u.nombre_completo LIKE :usuario OR u.username LIKE :usuario)";
+            $params[':usuario'] = '%' . $usuario . '%';
+        }
+
+        if ($idTipo > 0) {
+            $sql .= " AND t.id_tipo_ticket = :tipo";
+            $params[':tipo'] = $idTipo;
+        }
+
+        if ($desde !== '') {
+            $sql .= " AND t.creado_en >= :desde";
+            $params[':desde'] = $desde . ' 00:00:00';
+        }
+
+        if ($hasta !== '') {
+            $sql .= " AND t.creado_en <= :hasta";
+            $params[':hasta'] = $hasta . ' 23:59:59';
+        }
+
+        
+        if ($soloEstado !== null) {
+            $sql .= " AND te.nombre = :estado";
+            $params[':estado'] = $soloEstado;
+        }
+
+        $sql .= " ORDER BY t.creado_en DESC";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    if ($idTipo > 0) {
-        $sql .= " AND t.id_tipo_ticket = :tipo";
-        $params[':tipo'] = $idTipo;
+    public static function ticketsAsignados(int $idOperador): array
+    {
+        $pdo = self::connection();
+
+        $stmt = $pdo->prepare("
+            SELECT t.id_ticket, t.titulo, tt.nombre AS tipo_ticket, te.nombre AS estado_ticket, t.creado_en
+            FROM ticket t
+            JOIN ticket_tipo tt   ON t.id_tipo_ticket   = tt.id_tipo_ticket
+            JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+            WHERE t.id_operador_asignado = :op
+            ORDER BY t.creado_en DESC
+        ");
+
+        $stmt->execute([':op' => $idOperador]);
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    if ($desde !== '') {
-        $sql .= " AND t.creado_en >= :desde";
-        $params[':desde'] = $desde . ' 00:00:00';
+
+    public static function buscarTicketsNoAsignados(string $usuario, int $idTipo, string $desde, string $hasta): array
+    {
+        $pdo = self::connection();
+
+        $sql = "
+            SELECT t.id_ticket, t.titulo, tt.nombre AS tipo_ticket, te.nombre AS estado_ticket, t.creado_en, u.nombre_completo AS usuario_nombre
+            FROM ticket t
+            JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
+            JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+            JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
+            WHERE te.nombre = 'NO_ASIGNADO'
+        ";
+
+        $params = [];
+
+        if ($usuario !== '') {
+            $sql .= " AND (u.nombre_completo LIKE :usuario OR u.username LIKE :usuario)";
+            $params[':usuario'] = '%' . $usuario . '%';
+        }
+
+        if ($idTipo > 0) {
+            $sql .= " AND t.id_tipo_ticket = :tipo";
+            $params[':tipo'] = $idTipo;
+        }
+
+        if ($desde !== '') {
+            $sql .= " AND t.creado_en >= :desde";
+            $params[':desde'] = $desde . ' 00:00:00';
+        }
+
+        if ($hasta !== '') {
+            $sql .= " AND t.creado_en <= :hasta";
+            $params[':hasta'] = $hasta . ' 23:59:59';
+        }
+
+        $sql .= " ORDER BY t.creado_en DESC";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    if ($hasta !== '') {
-        $sql .= " AND t.creado_en <= :hasta";
-        $params[':hasta'] = $hasta . ' 23:59:59';
+    public static function buscarTicketsDeUsuario(
+        string $usuario,
+        int $idTipo,
+        string $estado,
+        string $desde,
+        string $hasta,
+        int $idCreador
+    ): array 
+    {
+        $pdo = self::connection();
+
+        $sql = "
+            SELECT t.id_ticket, t.titulo, tt.nombre AS tipo_ticket, te.nombre AS estado_ticket, t.creado_en, u.nombre_completo AS usuario_nombre
+            FROM ticket t
+            JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
+            JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
+            JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
+            WHERE t.id_usuario_creador = :creador
+        ";
+
+        $params = [
+            ':creador' => $idCreador,
+        ];
+
+        if ($idTipo > 0) {
+            $sql .= " AND t.id_tipo_ticket = :tipo";
+            $params[':tipo'] = $idTipo;
+        }
+
+        if ($estado !== '') {
+            $sql .= " AND t.id_estado_ticket = :estado";
+            $params[':estado'] = $estado;
+        }
+
+        if ($desde !== '') {
+            $sql .= " AND t.creado_en >= :desde";
+            $params[':desde'] = $desde . ' 00:00:00';
+        }
+
+        if ($hasta !== '') {
+            $sql .= " AND t.creado_en <= :hasta";
+            $params[':hasta'] = $hasta . ' 23:59:59';
+        }
+
+        $sql .= " ORDER BY t.creado_en DESC";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    
-    if ($soloEstado !== null) {
-        $sql .= " AND te.nombre = :estado";
-        $params[':estado'] = $soloEstado;
+
+    public static function asignarTicket(int $idTicket, int $idOperador): void
+    {
+        $pdo = self::connection();
+
+        $idEstadoAsignado = self::estadoId('ASIGNADO');
+
+        $stmt = $pdo->prepare("
+            UPDATE ticket
+            SET id_operador_asignado = :op,
+                id_estado_ticket     = :estado
+            WHERE id_ticket = :id
+        ");
+
+        $stmt->execute([
+            ':op'     => $idOperador,
+            ':estado' => $idEstadoAsignado,
+            ':id'     => $idTicket,
+        ]);
     }
 
-    $sql .= " ORDER BY t.creado_en DESC";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    return $stmt->fetchAll(PDO::FETCH_OBJ);
-}
-
-public static function ticketsAsignados(int $idOperador): array
-{
-    $pdo = self::connection();
-
-    $stmt = $pdo->prepare("
-        SELECT
-            t.id_ticket,
-            t.titulo,
-            tt.nombre AS tipo_ticket,
-            te.nombre AS estado_ticket,
-            t.creado_en
-        FROM ticket t
-        JOIN ticket_tipo tt   ON t.id_tipo_ticket   = tt.id_tipo_ticket
-        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
-        WHERE t.id_operador_asignado = :op
-        ORDER BY t.creado_en DESC
-    ");
-
-    $stmt->execute([':op' => $idOperador]);
-
-    return $stmt->fetchAll(PDO::FETCH_OBJ);
-}
-
-
-public static function buscarTicketsNoAsignados(string $usuario, int $idTipo, string $desde, string $hasta): array
-{
-    $pdo = self::connection();
-
-    $sql = "
-        SELECT
-            t.id_ticket,
-            t.titulo,
-            tt.nombre AS tipo_ticket,
-            te.nombre AS estado_ticket,
-            t.creado_en,
-            u.nombre_completo AS usuario_nombre
-        FROM ticket t
-        JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
-        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
-        JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
-        WHERE te.nombre = 'NO_ASIGNADO'
-    ";
-
-    $params = [];
-
-    if ($usuario !== '') {
-        $sql .= " AND (u.nombre_completo LIKE :usuario OR u.username LIKE :usuario)";
-        $params[':usuario'] = '%' . $usuario . '%';
-    }
-
-    if ($idTipo > 0) {
-        $sql .= " AND t.id_tipo_ticket = :tipo";
-        $params[':tipo'] = $idTipo;
-    }
-
-    if ($desde !== '') {
-        $sql .= " AND t.creado_en >= :desde";
-        $params[':desde'] = $desde . ' 00:00:00';
-    }
-
-    if ($hasta !== '') {
-        $sql .= " AND t.creado_en <= :hasta";
-        $params[':hasta'] = $hasta . ' 23:59:59';
-    }
-
-    $sql .= " ORDER BY t.creado_en DESC";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    return $stmt->fetchAll(PDO::FETCH_OBJ);
-}
-
-public static function buscarTicketsDeUsuario(
-    string $usuario,
-    int $idTipo,
-    string $estado,
-    string $desde,
-    string $hasta,
-    int $idCreador
-): array 
-{
-    $pdo = self::connection();
-
-    $sql = "
-        SELECT
-            t.id_ticket,
-            t.titulo,
-            tt.nombre AS tipo_ticket,
-            te.nombre AS estado_ticket,
-            t.creado_en,
-            u.nombre_completo AS usuario_nombre
-        FROM ticket t
-        JOIN ticket_tipo   tt ON t.id_tipo_ticket   = tt.id_tipo_ticket
-        JOIN ticket_estado te ON t.id_estado_ticket = te.id_estado_ticket
-        JOIN usuario       u  ON t.id_usuario_creador = u.id_usuario
-        WHERE t.id_usuario_creador = :creador
-    ";
-
-    $params = [
-        ':creador' => $idCreador,
-    ];
-
-    // FILTRO POR TIPO
-    if ($idTipo > 0) {
-        $sql .= " AND t.id_tipo_ticket = :tipo";
-        $params[':tipo'] = $idTipo;
-    }
-
-    // FILTRO POR ESTADO (NUEVO)
-    if ($estado !== '') {
-        $sql .= " AND t.id_estado_ticket = :estado";
-        $params[':estado'] = $estado;
-    }
-
-    // FILTRO POR FECHAS
-    if ($desde !== '') {
-        $sql .= " AND t.creado_en >= :desde";
-        $params[':desde'] = $desde . ' 00:00:00';
-    }
-
-    if ($hasta !== '') {
-        $sql .= " AND t.creado_en <= :hasta";
-        $params[':hasta'] = $hasta . ' 23:59:59';
-    }
-
-    $sql .= " ORDER BY t.creado_en DESC";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    return $stmt->fetchAll(PDO::FETCH_OBJ);
-}
-
-
-public static function asignarTicket(int $idTicket, int $idOperador): void
-{
-    $pdo = self::connection();
-
-    // usamos tu helper estadoId('ASIGNADO')
-    $idEstadoAsignado = self::estadoId('ASIGNADO');
-
-    $stmt = $pdo->prepare("
-        UPDATE ticket
-        SET id_operador_asignado = :op,
-            id_estado_ticket     = :estado
-        WHERE id_ticket = :id
-    ");
-
-    $stmt->execute([
-        ':op'     => $idOperador,
-        ':estado' => $idEstadoAsignado,
-        ':id'     => $idTicket,
-    ]);
-}
-
-
-    /**
-     * Cambiar estado del ticket + registrar en historial
-     * Implementación general para todos los estados
-     */
+    // Cambio de estado de ticket y se actualiza el historial
     public static function cambiarEstado(int $ticketId, int $nuevoEstadoId, int $operadorId, string $comentario = '')
     {
         $pdo = self::connection();
@@ -468,12 +382,10 @@ public static function asignarTicket(int $idTicket, int $idOperador): void
         try {
             $pdo->beginTransaction();
 
-            // 1. Obtener estado actual
             $stmt = $pdo->prepare("SELECT id_estado_ticket FROM ticket WHERE id_ticket = :id");
             $stmt->execute([':id' => $ticketId]);
             $estadoActualId = $stmt->fetchColumn();
 
-            // 2. Actualizar el ticket (estado + operador asignado)
             $stmt = $pdo->prepare("
                 UPDATE ticket 
                 SET id_estado_ticket = :nuevo,
@@ -487,7 +399,6 @@ public static function asignarTicket(int $idTicket, int $idOperador): void
                 ':id'       => $ticketId
             ]);
 
-            // 3. Registrar en historial
             $stmt = $pdo->prepare("
                 INSERT INTO ticket_entrada (
                     id_ticket, id_autor, texto, id_estado_anterior, id_estado_nuevo
@@ -510,10 +421,7 @@ public static function asignarTicket(int $idTicket, int $idOperador): void
         }
     }
 
-    /**
- * Método exclusivo para el USUARIO: aceptar o denegar solución
- * Solo cambia el estado, NO toca el operador asignado
- */
+    // Aceptar o Denegar Ticket
     public static function usuarioCambiarEstado(int $ticketId, int $nuevoEstadoId, int $usuarioId, string $comentario = '')
     {
         $pdo = self::connection();
@@ -521,12 +429,10 @@ public static function asignarTicket(int $idTicket, int $idOperador): void
         try {
             $pdo->beginTransaction();
 
-            // 1. Obtener estado actual
             $stmt = $pdo->prepare("SELECT id_estado_ticket FROM ticket WHERE id_ticket = :id");
             $stmt->execute([':id' => $ticketId]);
             $estadoActualId = $stmt->fetchColumn();
 
-            // 2. Actualizar SOLO el estado (NO toca id_operador_asignado)
             $stmt = $pdo->prepare("
                 UPDATE ticket 
                 SET id_estado_ticket = :nuevo,
@@ -538,7 +444,6 @@ public static function asignarTicket(int $idTicket, int $idOperador): void
                 ':id'    => $ticketId
             ]);
 
-            // 3. Registrar en historial
             $stmt = $pdo->prepare("
                 INSERT INTO ticket_entrada (
                     id_ticket, id_autor, texto, id_estado_anterior, id_estado_nuevo

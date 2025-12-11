@@ -9,7 +9,7 @@
     </div>
 </div>
 
-<!-- Mensajes de éxito/error -->
+<!-- Mensajes de exito o error -->
 <?php if (isset($_SESSION['success'])): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <?= $_SESSION['success']; unset($_SESSION['success']); ?>

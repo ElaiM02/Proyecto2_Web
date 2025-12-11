@@ -1,15 +1,15 @@
 CREATE TABLE rol (
     id_rol        INT AUTO_INCREMENT PRIMARY KEY,
-    nombre        VARCHAR(50) NOT NULL UNIQUE  -- 'SUPERADMIN', 'OPERADOR', 'USUARIO'
+    nombre        VARCHAR(50) NOT NULL UNIQUE  
 );
 
 CREATE TABLE usuario (
     id_usuario    INT AUTO_INCREMENT PRIMARY KEY,
     nombre_completo VARCHAR(150) NOT NULL,
     username      VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,         -- generado con password_hash()
+    password_hash VARCHAR(255) NOT NULL,        
     id_rol        INT NOT NULL,
-    activo        TINYINT(1) NOT NULL DEFAULT 1, -- desactivar en lugar de borrar
+    activo        TINYINT(1) NOT NULL DEFAULT 1, 
     creado_en     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en DATETIME NULL,
 
@@ -19,23 +19,23 @@ CREATE TABLE usuario (
 
 CREATE TABLE ticket_tipo (
     id_tipo_ticket INT AUTO_INCREMENT PRIMARY KEY,
-    nombre         VARCHAR(50) NOT NULL UNIQUE  -- 'PETICION', 'INCIDENTE'
+    nombre         VARCHAR(50) NOT NULL UNIQUE 
 );
 
 CREATE TABLE ticket_estado (
     id_estado_ticket INT AUTO_INCREMENT PRIMARY KEY,
-    nombre           VARCHAR(50) NOT NULL unique,  -- ej: 'NO_ASIGNADO','ASIGNADO',...
+    nombre           VARCHAR(50) NOT NULL unique,  
     descripcion      VARCHAR(255) NULL
 );
 
 CREATE TABLE ticket (
     id_ticket        INT AUTO_INCREMENT PRIMARY KEY,
     titulo           VARCHAR(200) NOT NULL,
-    descripcion_inicial TEXT NOT NULL,           -- primer mensaje/entrada descriptiva
+    descripcion_inicial TEXT NOT NULL,           
     id_tipo_ticket   INT NOT NULL,
-    id_estado_ticket INT NOT NULL,               -- estado actual
-    id_usuario_creador INT NOT NULL,             -- quien creó el ticket (rol: Usuario)
-    id_operador_asignado INT NULL,               -- operador actual, si existe
+    id_estado_ticket INT NOT NULL,             
+    id_usuario_creador INT NOT NULL,             
+    id_operador_asignado INT NULL,              
     creado_en        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en   DATETIME NULL,
 
@@ -52,13 +52,16 @@ CREATE TABLE ticket (
         FOREIGN KEY (id_operador_asignado) REFERENCES usuario(id_usuario)
 );
 
+ALTER TABLE ticket 
+ADD COLUMN imagen VARCHAR(255) NULL AFTER descripcion_inicial;
+
 CREATE TABLE ticket_entrada (
     id_entrada      INT AUTO_INCREMENT PRIMARY KEY,
     id_ticket       INT NOT NULL,
-    id_autor        INT NOT NULL,         -- puede ser Usuario o Operador
-    texto           TEXT NOT NULL,        -- comentario / descripción
-    id_estado_anterior INT NULL,          -- estado antes del cambio (si aplica)
-    id_estado_nuevo    INT NULL,          -- estado después del cambio (si aplica)
+    id_autor        INT NOT NULL,         
+    texto           TEXT NOT NULL,        
+    id_estado_anterior INT NULL,          
+    id_estado_nuevo    INT NULL,          
     creado_en       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_entrada_ticket
@@ -74,36 +77,20 @@ CREATE TABLE ticket_entrada (
         FOREIGN KEY (id_estado_nuevo) REFERENCES ticket_estado(id_estado_ticket)
 );
 
-CREATE TABLE categoria (
-    id_categoria   INT AUTO_INCREMENT PRIMARY KEY,
-    nombre         VARCHAR(100) NOT NULL UNIQUE,
-    descripcion    VARCHAR(255) NULL
-);
-
-CREATE TABLE prioridad (
-    id_prioridad   INT AUTO_INCREMENT PRIMARY KEY,
-    nombre         VARCHAR(50) NOT NULL UNIQUE,  -- 'BAJA','MEDIA','ALTA','CRITICA'
-    nivel          TINYINT NOT NULL              -- 1,2,3,4
-);
 
 
 
-
--- Roles
 INSERT INTO rol (nombre) VALUES ('SUPERADMIN'), ('OPERADOR'), ('USUARIO');
 
--- Usuarios de ejemplo (contraseña para todos: "123456")
 INSERT INTO usuario (nombre_completo, username, password_hash, id_rol) VALUES
-('Ana Gómez',           'ana.gomez',       '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 3), -- USUARIO
-('Carlos Pérez',        'carlos.perez',    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 3), -- USUARIO
-('Luis Ramírez',        'luis.ramirez',    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2), -- OPERADOR
-('María Fernández',     'maria.fernandez', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2), -- OPERADOR
-('Admin Sistema',       'admin',           '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1); -- SUPERADMIN
+('Ana Gómez',           'ana.gomez',       '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 3), 
+('Carlos Pérez',        'carlos.perez',    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 3), 
+('Luis Ramírez',        'luis.ramirez',    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2),
+('María Fernández',     'maria.fernandez', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2),
+('Admin Sistema',       'admin',           '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1);
 
--- Tipos de ticket
 INSERT INTO ticket_tipo (nombre) VALUES ('PETICION'), ('INCIDENTE');
 
--- Estados de ticket
 INSERT INTO ticket_estado (id_estado_ticket, nombre, descripcion) VALUES
 (1, 'NO_ASIGNADO',        'Ticket recién creado, aún sin operador'),
 (2, 'ASIGNADO',           'Operador ya tomó el ticket'),
@@ -118,7 +105,3 @@ INSERT INTO ticket (titulo, descripcion_inicial, id_tipo_ticket, id_estado_ticke
 ('Impresora del piso 3 no responde', 'La impresora HP marca "Error 79" y no imprime nada.', 2, 1, 1, NULL),
 ('Instalación de Adobe Acrobat Pro', 'Por favor instalar Adobe Acrobat en mi equipo para firmar documentos.', 1, 5, 2, 3),
 ('Pantalla azul en equipo de contabilidad', 'El equipo de Sandra se reinicia cada 20 minutos con pantalla azul. ¡Urgente!', 2, 4, 1, 4);
-
-
-ALTER TABLE ticket 
-ADD COLUMN imagen VARCHAR(255) NULL AFTER descripcion_inicial;

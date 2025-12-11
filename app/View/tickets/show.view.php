@@ -1,18 +1,14 @@
 <?php require __DIR__ . '/../layouts/header.php'; ?>
 
 <div class="container mt-4">
-    <?php 
+<?php
 $rol = $_SESSION['user']['rol_nombre'] ?? '';
-$estado = $ticket->estado_nombre;  // ← ESTA LÍNEA ES LA QUE FALTABA
+$estado = $ticket->estado_nombre;
 ?>
-
-    <!-- TÍTULO + BOTÓN VOLVER -->
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
-            <h1 class="mb-1">
-                Ticket #<?= $ticket->id_ticket ?>
-                <span class="badge bg-<?= 
-                    $ticket->estado_nombre === 'CERRADO' ? 'success' : 
+            <h1 class="mb-1"> Ticket #<?= $ticket->id_ticket ?>
+                <span class="badge bg-<?= $ticket->estado_nombre === 'CERRADO' ? 'success' : 
                     ($ticket->estado_nombre === 'EN_PROCESO' ? 'warning' : 'secondary') ?> fs-6">
                     <?= htmlspecialchars($ticket->estado_nombre) ?>
                 </span>
@@ -20,12 +16,9 @@ $estado = $ticket->estado_nombre;  // ← ESTA LÍNEA ES LA QUE FALTABA
             
             <h4 class="text-muted"><?= htmlspecialchars($ticket->titulo) ?></h4>
         </div>
-        <a href="/tickets" class="btn btn-outline-secondary">
-            Volver al listado
-        </a>
+        <a href="/tickets" class="btn btn-outline-secondary">Volver al listado</a>
     </div>
 
-    <!-- ALERTA SEGÚN ROL -->
     <?php if ($_SESSION['user']['rol_nombre'] === 'USUARIO'): ?>
         <div class="alert alert-info">
             <strong>Área de Usuario</strong> – Este es tu ticket. El equipo de soporte lo revisará pronto.
@@ -35,29 +28,20 @@ $estado = $ticket->estado_nombre;  // ← ESTA LÍNEA ES LA QUE FALTABA
         <strong>Operador</strong> Puedes responder y actualizar el estado de este ticket.
     </div>
 
-   <?php if (
-    isset($_SESSION['user']) &&
-    ( $_SESSION['user']['rol_nombre'] ?? '' ) === 'OPERADOR' &&
-    empty($ticket->id_operador_asignado)
-    ): ?>
+   <?php if (isset($_SESSION['user']) && ( $_SESSION['user']['rol_nombre'] ?? '' ) === 'OPERADOR' && empty($ticket->id_operador_asignado)): ?>
     <form action="/tickets/asignar" method="POST" class="mb-3">
         <input type="hidden" name="id_ticket" value="<?= (int)$ticket->id_ticket ?>">
-        <button type="submit" class="btn btn-primary">
-            Asignación de Ticket
-        </button>
+        <button type="submit" class="btn btn-primary">Asignación de Ticket</button>
     </form>
     <?php endif; ?>
 
-
-<?php else: ?>
+    <?php else: ?>
         <div class="alert alert-success">
             <strong>Administrador</strong> – Tienes control total sobre este ticket.
         </div>
     <?php endif; ?>
 
-    
-
-    <!-- CARD CON INFO DEL TICKET -->
+    <!-- Informacion del Ticket -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <div class="row">
@@ -77,8 +61,6 @@ $estado = $ticket->estado_nombre;  // ← ESTA LÍNEA ES LA QUE FALTABA
                     <?php endif; ?>
                 </div>
             </div>
-
-            <hr>
 
             <h5 class="mb-3"><strong>Descripción inicial</strong></h5>
             <div class="bg-light p-3 rounded">
@@ -140,7 +122,7 @@ $estado = $ticket->estado_nombre;  // ← ESTA LÍNEA ES LA QUE FALTABA
         </div>
     <?php endif; ?>
 
-    <!-- HISTORIAL -->
+    <!-- Historial -->
     <h3 class="mb-4">Historial de actualizaciones</h3>
 
     <?php if (empty($entradas)): ?>
@@ -174,42 +156,38 @@ $estado = $ticket->estado_nombre;  // ← ESTA LÍNEA ES LA QUE FALTABA
         </div>
     <?php endif; ?>
 
-        <!-- ACEPTAR O DENEGAR SOLUCIÓN (solo USUARIO cuando está SOLUCIONADO) -->
-<?php 
-$estadoNormalizado = trim(strtoupper($ticket->estado_nombre));
-?>
-<?php if ($rol === 'USUARIO' && $estadoNormalizado === 'SOLUCIONADO'): ?>
-    <div class="card border-success mb-4">
-        <div class="card-header bg-success text-white">
-            <h5 class="mb-0">¿La solución resuelve tu problema?</h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <form action="/tickets/aceptar-solucion" method="POST">
-                        <input type="hidden" name="id" value="<?= $ticket->id_ticket ?>">
-                        <button type="submit" class="btn btn-success btn-lg w-100">
-                            Aceptar solución (cerrar ticket)
-                        </button>
-                    </form>
-                </div>
-                <div class="col-md-6">
-                    <form action="/tickets/denegar-solucion" method="POST">
-                        <input type="hidden" name="id" value="<?= $ticket->id_ticket ?>">
-                        <input type="text" name="comentario" class="form-control mb-2" 
-                               placeholder="¿Por qué rechazas la solución? (obligatorio)" required>
-                        <button type="submit" class="btn btn-danger btn-lg w-100">
-                            Denegar solución (reabrir ticket)
-                        </button>
-                    </form>
-                </div>
+    <!-- Aceptar o Rechazar Ticket -->
+    <?php 
+    $estadoNormalizado = trim(strtoupper($ticket->estado_nombre));
+    ?>
+    <?php if ($rol === 'USUARIO' && $estadoNormalizado === 'SOLUCIONADO'): ?>
+        <div class="card border-success mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">¿La solución resuelve tu problema?</h5>
             </div>
-            <small class="text-muted d-block mt-3">
-                Al aceptar, el ticket se cerrará permanentemente. Al denegar, volverá a "Asignado" para que el operador lo revise de nuevo.
-            </small>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <form action="/tickets/aceptar-solucion" method="POST">
+                            <input type="hidden" name="id" value="<?= $ticket->id_ticket ?>">
+                            <button type="submit" class="btn btn-success btn-lg w-100">Aceptar solución (cerrar ticket)</button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <form action="/tickets/denegar-solucion" method="POST">
+                            <input type="hidden" name="id" value="<?= $ticket->id_ticket ?>">
+                            <input type="text" name="comentario" class="form-control mb-2" 
+                                placeholder="¿Por qué rechazas la solución? (obligatorio)" required>
+                            <button type="submit" class="btn btn-danger btn-lg w-100">Denegar solución (reabrir ticket)</button>
+                        </form>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-3">
+                    Al aceptar, el ticket se cerrará permanentemente. Al denegar, volverá a "Asignado" para que el operador lo revise de nuevo.
+                </small>
+            </div>
         </div>
-    </div>
-<?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <?php require __DIR__ . '/../layouts/footer.php'; ?>

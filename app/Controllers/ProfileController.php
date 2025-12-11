@@ -33,7 +33,6 @@ class ProfileController extends Controller
             return $this->view('profile/edit', ['user' => $user, 'error' => 'Las contraseñas no coinciden']);
         }
 
-        // Check if username is taken by another user
         $existingUser = User::findByUsername($username);
         if ($existingUser && $existingUser->id_usuario != $id) {
             $user = User::find($id);
@@ -46,8 +45,7 @@ class ProfileController extends Controller
         }
 
         User::update($id, $data);
-
-        // Update session
+        
         $_SESSION['user']['username'] = $username;
 
         $user = User::find($id);

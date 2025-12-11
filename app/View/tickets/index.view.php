@@ -9,13 +9,11 @@
         <?php endif; ?>
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="/tickets/create" class="btn btn-sm btn-primary">
-            Crear Ticket
-        </a>
+        <a href="/tickets/create" class="btn btn-sm btn-primary">Crear Ticket</a>
     </div>
 </div>
 
-<!-- MENSAJE CONTEXTUAL SEGÚN EL ROL -->
+<!-- Mensaje segun el rol -->
 <?php if ($_SESSION['user']['rol_nombre'] === 'USUARIO'): ?>
     <div class="alert alert-info alert-dismissible fade show" role="alert">
         <strong>Área de Usuario</strong> – Aquí solo puedes ver los tickets que creaste tú.
@@ -27,18 +25,17 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-<?php else: /* SUPERADMIN */ ?>
+<?php else: ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <strong>Panel de Administración</strong> – Tienes acceso completo a todos los tickets.
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
-<!-- TABLA DE TICKETS -->
+<!-- Info de Tickets -->
  <form method="GET" action="/tickets" class="row g-3 mb-4">
 
     <?php if ($_SESSION['user']['rol_nombre'] !== 'USUARIO'): ?>
-        <!-- BUSCAR POR USUARIO (Operador / Admin) -->
         <div class="col-md-4">
             <label class="form-label">Usuario (nombre o username)</label>
             <input type="text" name="usuario" class="form-control"
@@ -46,7 +43,6 @@
         </div>
 
     <?php else: ?>
-        <!-- BUSCAR POR ESTADO (Usuario Final) -->
         <div class="col-md-4">
             <label class="form-label">Estado del ticket</label>
             <select name="estado" class="form-select">
@@ -77,14 +73,12 @@
 
     <div class="col-md-2">
         <label class="form-label">Desde</label>
-        <input type="date" name="desde" class="form-control"
-               value="<?= htmlspecialchars($_GET['desde'] ?? '') ?>">
+        <input type="date" name="desde" class="form-control" value="<?= htmlspecialchars($_GET['desde'] ?? '') ?>">
     </div>
 
     <div class="col-md-2">
         <label class="form-label">Hasta</label>
-        <input type="date" name="hasta" class="form-control"
-               value="<?= htmlspecialchars($_GET['hasta'] ?? '') ?>">
+        <input type="date" name="hasta" class="form-control" value="<?= htmlspecialchars($_GET['hasta'] ?? '') ?>">
     </div>
 
     <div class="col-md-1 d-flex align-items-end">
@@ -92,8 +86,6 @@
     </div>
 
 </form>
-
-
 
 <div class="table-responsive">
     <table class="table table-striped table-hover table-bordered align-middle">
@@ -131,10 +123,7 @@
                         </td>
                         <td><?= date('d/m/Y H:i', strtotime($ticket->creado_en)) ?></td>
                         <td>
-                            <a href="/tickets/show?id=<?= $ticket->id_ticket ?>" 
-                               class="btn btn-sm btn-outline-primary" title="Ver detalles">
-                                Ver
-                            </a>
+                            <a href="/tickets/show?id=<?= $ticket->id_ticket ?>" class="btn btn-sm btn-outline-primary" title="Ver detalles">VerS</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

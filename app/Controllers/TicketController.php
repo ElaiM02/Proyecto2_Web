@@ -6,26 +6,20 @@ use App\Models\Ticket;
 
 class TicketController
 {
-    /**
-     * Lista de tickets
-     */
    public function index()
 {
-    // Leer parámetros de búsqueda
+    // Parametros de busqueda
     $usuario = trim($_GET['usuario'] ?? '');
     $tipo    = isset($_GET['tipo']) ? (int) $_GET['tipo'] : 0;
     $desde   = $_GET['desde'] ?? '';
     $hasta   = $_GET['hasta'] ?? '';
     $estado  = $_GET['estado'] ?? '';
 
-    // Rol y usuario
     $rol       = strtoupper(trim($_SESSION['user']['rol_nombre'] ?? ''));
     $idUsuario = (int)($_SESSION['user']['id_usuario'] ?? 0);
 
-    // Seleccionar búsqueda correcta
+    // Busqueda de Operador
     if ($rol === 'OPERADOR') {
-
-        // Los operadores ven solo NO_ASIGNADO
         $tickets = Ticket::buscarTickets(
             $usuario,
             $tipo,
@@ -36,12 +30,11 @@ class TicketController
         );
 
     } elseif ($rol === 'USUARIO') {
-
-        // Usuarios solo ven SUS tickets
+        // Busqueda de Usuarios
         $tickets = Ticket::buscarTicketsDeUsuario(
-            $usuario,   // normalmente vacío
+            $usuario,
             $tipo,
-            $estado,    // <-- AHORA SÍ ENTRA
+            $estado,
             $desde,
             $hasta,
             $idUsuario
@@ -49,7 +42,7 @@ class TicketController
 
     } else {
 
-        // SUPERADMIN o cualquier otro
+        // Busqueda de Superadmin
         $tickets = Ticket::buscarTickets(
             $usuario,
             $tipo,
@@ -60,17 +53,13 @@ class TicketController
         );
     }
 
-    // Tipos de ticket para selector
     $tipos = Ticket::tipos();
-
     $estados = Ticket::estados();
 
     require __DIR__ . '/../View/tickets/index.view.php';
 }
 
-    /**
-     * Mostrar formulario de creación
-     */
+    // Crear Ticket 
     public function create()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -96,9 +85,7 @@ class TicketController
         require __DIR__ . '/../View/tickets/create.view.php';
     }
 
-    /**
-     * Guardar ticket
-     */
+    // Guardar ticket
     public function store()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -115,7 +102,6 @@ class TicketController
         $tipo        = (int)($_POST['tipo'] ?? 0);
         $creador     = $_SESSION['user']['id_usuario'];
 
-
         $errores = [];
 
         if ($titulo === '') {
@@ -130,18 +116,15 @@ class TicketController
             $errores[] = "Debes seleccionar un tipo.";
         }
 
-        // SUBIDA DE IMAGEN 
+        // Agregar Imagen 
         $imagen = null;
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['imagen'];
             $maxSize = 3 * 1024 * 1024;
 
-            // 1. Validar tamaño
             if ($file['size'] > $maxSize) {
                 $errores[] = "La imagen no puede pesar más de 3MB.";
-            } 
-            // 2. Validar extensión del archivo (100% confiable y sin extensiones)
-            else {
+            } else {
                 $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                 $permitidas = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
@@ -161,8 +144,6 @@ class TicketController
             header('Location: /tickets/create');
             exit;
         }
-
-        // SUBIR IMAGEN SI PASÓ LAS VALIDACIONES
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK && empty($errores)) {
             $uploadDir = __DIR__ . '/../../public/uploads/tickets/';
             if (!is_dir($uploadDir)) {
@@ -191,7 +172,7 @@ class TicketController
             exit;
         }
 
-        // USER ID desde la sesión
+        // User de la sesión
         $creador = $_SESSION['user']['id_usuario'];
 
         try {
@@ -207,10 +188,8 @@ class TicketController
             exit;
         }
     }
-
-    /**
-     * Ver detalle de un ticket (usando ?id=)
-     */
+     
+    // Ver detalles de ticket
     public function show()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -222,7 +201,6 @@ class TicketController
             exit;
         }
 
-        // Tomamos el id desde la query string: /tickets/show?id=26
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($id <= 0) {
@@ -231,7 +209,6 @@ class TicketController
             exit;
         }
 
-        // Obtener ticket con relaciones
         $ticket = Ticket::findWithRelations($id);
 
         if (!$ticket) {
@@ -245,150 +222,148 @@ class TicketController
 
         require __DIR__ . '/../View/tickets/show.view.php';
     }
+
     public function misAsignados()
-{
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+
+        if (strtoupper($_SESSION['user']['rol_nombre'] ?? '') !== 'OPERADOR') {
+            http_response_code(403);
+            echo "No autorizado";
+            exit;
+        }
+
+        $idOperador = (int) $_SESSION['user']['id_usuario']; 
+
+        $tickets = Ticket::ticketsAsignados($idOperador);
+        
+        $rol        = strtoupper($_SESSION['user']['rol_nombre'] ?? '');
+        $esOperador = ($rol === 'OPERADOR');
+        $yaAsignado = !empty($ticket->id_operador_asignado);
+        
+
+        require __DIR__ . '/../View/tickets/asignacion.view.php';
     }
 
-    if (!isset($_SESSION['user'])) {
-        header('Location: /login');
+    public function asignar()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+
+        if (strtoupper($_SESSION['user']['rol_nombre'] ?? '') !== 'OPERADOR') {
+            http_response_code(403);
+            echo "No autorizado";
+            exit;
+        }
+
+        $idTicket = (int) ($_POST['id_ticket'] ?? 0);
+
+        if ($idTicket <= 0) {
+            http_response_code(400);
+            echo "ID de ticket inválido";
+            exit;
+        }
+
+        $idOperador = (int) $_SESSION['user']['id_usuario'];
+
+        Ticket::asignarTicket($idTicket, $idOperador);
+
+        header("Location: /tickets/show?id=" . $idTicket);
         exit;
     }
 
-    if (strtoupper($_SESSION['user']['rol_nombre'] ?? '') !== 'OPERADOR') {
-        http_response_code(403);
-        echo "No autorizado";
-        exit;
-    }
+    public function cambiarEstado()
+    {
+        if (!in_array($_SESSION['user']['rol_nombre'] ?? '', ['OPERADOR', 'SUPERADMIN'])) {
+            $_SESSION['error'] = 'Solo operadores pueden cambiar el estado.';
+            header('Location: /tickets');
+            exit;
+        }
 
-    $idOperador = (int) $_SESSION['user']['id_usuario']; 
+        $id = (int)($_POST['id'] ?? 0);
+        $nuevoEstado = $_POST['nuevo_estado'] ?? '';
+        $comentario = trim($_POST['comentario'] ?? '');
 
-    $tickets = Ticket::ticketsAsignados($idOperador);
-    
-    $rol        = strtoupper($_SESSION['user']['rol_nombre'] ?? '');
-    $esOperador = ($rol === 'OPERADOR');
-    $yaAsignado = !empty($ticket->id_operador_asignado);
-    
+        if ($id <= 0 || empty($nuevoEstado)) {
+            $_SESSION['error'] = 'Datos inválidos.';
+            header("Location: /tickets/show?id=$id");
+            exit;
+        }
 
-    require __DIR__ . '/../View/tickets/asignacion.view.php';
-}
+        try {
+            $estadoId = Ticket::estadoId($nuevoEstado);
+            Ticket::cambiarEstado($id, $estadoId, $_SESSION['user']['id_usuario'], $comentario);
+            $_SESSION['success'] = "Estado cambiado a: $nuevoEstado";
+        } catch (Exception $e) {
+            $_SESSION['error'] = $e->getMessage();
+        }
 
-public function asignar()
-{
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-
-    if (!isset($_SESSION['user'])) {
-        header('Location: /login');
-        exit;
-    }
-
-    if (strtoupper($_SESSION['user']['rol_nombre'] ?? '') !== 'OPERADOR') {
-        http_response_code(403);
-        echo "No autorizado";
-        exit;
-    }
-
-    $idTicket = (int) ($_POST['id_ticket'] ?? 0);
-
-    if ($idTicket <= 0) {
-        http_response_code(400);
-        echo "ID de ticket inválido";
-        exit;
-    }
-
-    $idOperador = (int) $_SESSION['user']['id_usuario'];
-
-    Ticket::asignarTicket($idTicket, $idOperador);
-
-    // volver al detalle del ticket
-    header("Location: /tickets/show?id=" . $idTicket);
-    exit;
-}
-
-public function cambiarEstado()
-{
-    if (!in_array($_SESSION['user']['rol_nombre'] ?? '', ['OPERADOR', 'SUPERADMIN'])) {
-        $_SESSION['error'] = 'Solo operadores pueden cambiar el estado.';
-        header('Location: /tickets');
-        exit;
-    }
-
-    $id = (int)($_POST['id'] ?? 0);
-    $nuevoEstado = $_POST['nuevo_estado'] ?? '';
-    $comentario = trim($_POST['comentario'] ?? '');
-
-    if ($id <= 0 || empty($nuevoEstado)) {
-        $_SESSION['error'] = 'Datos inválidos.';
         header("Location: /tickets/show?id=$id");
         exit;
     }
 
-    try {
-        $estadoId = Ticket::estadoId($nuevoEstado);
-        Ticket::cambiarEstado($id, $estadoId, $_SESSION['user']['id_usuario'], $comentario);
-        $_SESSION['success'] = "Estado cambiado a: $nuevoEstado";
-    } catch (Exception $e) {
-        $_SESSION['error'] = $e->getMessage();
-    }
-
-    header("Location: /tickets/show?id=$id");
-    exit;
-}
-
-public function aceptarSolucion()
-{
+    public function aceptarSolucion()
+    {
 
 
-    $id = (int)($_POST['id'] ?? 0);
-    if ($id <= 0) {
-        header('Location: /tickets');
-        exit;
-    }
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            header('Location: /tickets');
+            exit;
+        }
 
-    try {
-        $estadoCerrado = Ticket::estadoId('CERRADO');
-        Ticket::usuarioCambiarEstado($id, $estadoCerrado, $_SESSION['user']['id_usuario'], 'Usuario aceptó la solución - ticket cerrado');
-        $_SESSION['success'] = '¡Gracias! El ticket ha sido cerrado permanentemente.';
-    } catch (Exception $e) {
-        $_SESSION['error'] = 'Error al cerrar el ticket: ' . $e->getMessage();
-    }
-    
-
-    header("Location: /tickets/show?id=$id");
-    exit;
-}
-
-public function denegarSolucion()
-{
-
-    $id = (int)($_POST['id'] ?? 0);
-    $comentario = trim($_POST['comentario'] ?? '');
-
-    if ($id <= 0) {
-        $_SESSION['error'] = 'Ticket inválido.';
-        header('Location: /tickets');
-        exit;
-    }
-
-    if (empty($comentario)) {
-        $_SESSION['error'] = 'Debes explicar por qué rechazas la solución.';
+        try {
+            $estadoCerrado = Ticket::estadoId('CERRADO');
+            Ticket::usuarioCambiarEstado($id, $estadoCerrado, $_SESSION['user']['id_usuario'], 'Usuario aceptó la solución - ticket cerrado');
+            $_SESSION['success'] = '¡Gracias! El ticket ha sido cerrado permanentemente.';
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Error al cerrar el ticket: ' . $e->getMessage();
+        }
+        
         header("Location: /tickets/show?id=$id");
         exit;
     }
 
-    try {
-        $estadoAsignado = Ticket::estadoId('ASIGNADO');
-        Ticket::usuarioCambiarEstado($id, $estadoAsignado, $_SESSION['user']['id_usuario'], 'Usuario rechazó la solución: ' . $comentario);
-        $_SESSION['success'] = 'Ticket reabierto. El operador revisará tu comentario.';
-    } catch (Exception $e) {
-        $_SESSION['error'] = 'Error al reabrir el ticket: ' . $e->getMessage();
+    public function denegarSolucion()
+    {
+
+        $id = (int)($_POST['id'] ?? 0);
+        $comentario = trim($_POST['comentario'] ?? '');
+
+        if ($id <= 0) {
+            $_SESSION['error'] = 'Ticket inválido.';
+            header('Location: /tickets');
+            exit;
+        }
+
+        if (empty($comentario)) {
+            $_SESSION['error'] = 'Debes explicar por qué rechazas la solución.';
+            header("Location: /tickets/show?id=$id");
+            exit;
+        }
+
+        try {
+            $estadoAsignado = Ticket::estadoId('ASIGNADO');
+            Ticket::usuarioCambiarEstado($id, $estadoAsignado, $_SESSION['user']['id_usuario'], 'Usuario rechazó la solución: ' . $comentario);
+            $_SESSION['success'] = 'Ticket reabierto. El operador revisará tu comentario.';
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Error al reabrir el ticket: ' . $e->getMessage();
+        }
+
+        header("Location: /tickets/show?id=$id");
+        exit;
     }
-
-    header("Location: /tickets/show?id=$id");
-    exit;
-}
-
 }

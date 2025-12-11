@@ -24,19 +24,12 @@
     <?php endif; ?>
 
     <form action="/tickets/create" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
-
-        <!-- Título -->
         <div class="mb-3">
             <label class="form-label">Título de la solicitud</label>
-            <input type="text"
-                   class="form-control"
-                   name="titulo"
-                   value="<?= htmlspecialchars($old['titulo'] ?? '') ?>"
-                   maxlength="200"
-                   required>
+            <input type="text" class="form-control" name="titulo"
+                   value="<?= htmlspecialchars($old['titulo'] ?? '') ?>" maxlength="200" required>
         </div>
 
-        <!-- Tipo -->
         <div class="mb-3">
             <label class="form-label">Tipo de solicitud</label>
             <select class="form-select" name="tipo" required>
@@ -52,12 +45,9 @@
             </select>
         </div>
 
-        <!-- Descripción -->
         <div class="mb-3">
             <label class="form-label">Descripción</label>
-            <textarea class="form-control"
-                      name="descripcion"
-                      rows="5"
+            <textarea class="form-control" name="descripcion" rows="5"
                       required><?= htmlspecialchars($old['descripcion'] ?? '') ?></textarea>
         </div>
 
@@ -76,4 +66,3 @@
 </div>
 
 <?php require __DIR__ . '/../layouts/footer.php'; ?>
-
