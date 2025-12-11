@@ -123,7 +123,7 @@
                         </td>
                         <td><?= date('d/m/Y H:i', strtotime($ticket->creado_en)) ?></td>
                         <td>
-                            <a href="/tickets/show?id=<?= $ticket->id_ticket ?>" class="btn btn-sm btn-outline-primary" title="Ver detalles">VerS</a>
+                            <a href="/tickets/show?id=<?= $ticket->id_ticket ?>" class="btn btn-sm btn-outline-primary" title="Ver detalles">Ver</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
