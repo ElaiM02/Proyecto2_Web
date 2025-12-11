@@ -54,6 +54,7 @@ $router->post('/tickets/create', 'TicketController@store');   // Guardar ticket
 $router->get('/tickets/show', 'TicketController@show');
 $router->get('/tickets/asignados', 'TicketController@misAsignados');
 $router->post('/tickets/asignar', 'TicketController@asignar');
+$router->post('/tickets/cambiar-estado', 'TicketController@cambiarEstado');
 $router->post('/tickets/aceptar-solucion', 'TicketController@aceptarSolucion');
 $router->post('/tickets/denegar-solucion', 'TicketController@denegarSolucion');
 
