@@ -37,11 +37,30 @@
 <!-- TABLA DE TICKETS -->
  <form method="GET" action="/tickets" class="row g-3 mb-4">
 
-    <div class="col-md-4">
-        <label class="form-label">Usuario (nombre o username)</label>
-        <input type="text" name="usuario" class="form-control"
-               value="<?= htmlspecialchars($_GET['usuario'] ?? '') ?>">
-    </div>
+    <?php if ($_SESSION['user']['rol_nombre'] !== 'USUARIO'): ?>
+        <!-- BUSCAR POR USUARIO (Operador / Admin) -->
+        <div class="col-md-4">
+            <label class="form-label">Usuario (nombre o username)</label>
+            <input type="text" name="usuario" class="form-control"
+                   value="<?= htmlspecialchars($_GET['usuario'] ?? '') ?>">
+        </div>
+
+    <?php else: ?>
+        <!-- BUSCAR POR ESTADO (Usuario Final) -->
+        <div class="col-md-4">
+            <label class="form-label">Estado del ticket</label>
+            <select name="estado" class="form-select">
+                <option value="">Todos</option>
+
+                <?php foreach ($estados as $e): ?>
+                    <option value="<?= $e->id_estado_ticket ?>"
+                        <?= (($_GET['estado'] ?? '') == $e->id_estado_ticket) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($e->nombre) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+    <?php endif; ?>
 
     <div class="col-md-3">
         <label class="form-label">Tipo de ticket</label>
@@ -73,6 +92,9 @@
     </div>
 
 </form>
+
+
+
 <div class="table-responsive">
     <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-dark">

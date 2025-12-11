@@ -25,7 +25,8 @@
                     <td><?= htmlspecialchars($t->estado_ticket) ?></td>
                     <td><?= date('d/m/Y H:i', strtotime($t->creado_en)) ?></td>
                     <td>
-                        <a href="/tickets/show?id=<?= (int) $t->id_ticket ?>">Ver</a>
+                        <a href="/tickets/show?id=<?= (int) $t->id_ticket ?>"
+                        class="btn btn-sm btn-outline-primary" title="Ver detalles">Ver</a>>Ver</a>
                     </td>
                 </tr>
             <?php endforeach; ?>

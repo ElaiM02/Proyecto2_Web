@@ -29,6 +29,7 @@ public static function all()
     ";
 
     $rol = $_SESSION['user']['rol_nombre'] ?? '';
+    $estado = $ticket->nombre;
 
     // 1. USUARIO → solo ve sus propios tickets
     if ($rol === 'USUARIO') {
@@ -70,10 +71,23 @@ public static function all()
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
+    public static function estados()
+{
+    $stmt = self::connection()->prepare("
+        SELECT id_estado_ticket, nombre
+        FROM ticket_estado
+        ORDER BY nombre
+    ");
+
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_OBJ);
+}
+
     /**
      * Obtener ID de un estado por nombre (ej: 'NO_ASIGNADO')
      */
-    protected static function estadoId(string $nombre): int
+    public static function estadoId(string $nombre): int
     {
         $stmt = self::connection()->prepare("
             SELECT id_estado_ticket
@@ -308,6 +322,8 @@ public static function ticketsAsignados(int $idOperador): array
 
     return $stmt->fetchAll(PDO::FETCH_OBJ);
 }
+
+
 public static function buscarTicketsNoAsignados(string $usuario, int $idTipo, string $desde, string $hasta): array
 {
     $pdo = self::connection();
@@ -360,10 +376,12 @@ public static function buscarTicketsNoAsignados(string $usuario, int $idTipo, st
 public static function buscarTicketsDeUsuario(
     string $usuario,
     int $idTipo,
+    string $estado,
     string $desde,
     string $hasta,
     int $idCreador
-): array {
+): array 
+{
     $pdo = self::connection();
 
     $sql = "
@@ -385,16 +403,19 @@ public static function buscarTicketsDeUsuario(
         ':creador' => $idCreador,
     ];
 
-    if ($usuario !== '') {
-        $sql .= " AND (u.nombre_completo LIKE :usuario OR u.username LIKE :usuario)";
-        $params[':usuario'] = '%' . $usuario . '%';
-    }
-
+    // FILTRO POR TIPO
     if ($idTipo > 0) {
         $sql .= " AND t.id_tipo_ticket = :tipo";
         $params[':tipo'] = $idTipo;
     }
 
+    // FILTRO POR ESTADO (NUEVO)
+    if ($estado !== '') {
+        $sql .= " AND t.id_estado_ticket = :estado";
+        $params[':estado'] = $estado;
+    }
+
+    // FILTRO POR FECHAS
     if ($desde !== '') {
         $sql .= " AND t.creado_en >= :desde";
         $params[':desde'] = $desde . ' 00:00:00';
@@ -412,6 +433,7 @@ public static function buscarTicketsDeUsuario(
 
     return $stmt->fetchAll(PDO::FETCH_OBJ);
 }
+
 
 public static function asignarTicket(int $idTicket, int $idOperador): void
 {
@@ -434,4 +456,108 @@ public static function asignarTicket(int $idTicket, int $idOperador): void
     ]);
 }
 
+
+    /**
+     * Cambiar estado del ticket + registrar en historial
+     * Implementación general para todos los estados
+     */
+    public static function cambiarEstado(int $ticketId, int $nuevoEstadoId, int $operadorId, string $comentario = '')
+    {
+        $pdo = self::connection();
+
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Obtener estado actual
+            $stmt = $pdo->prepare("SELECT id_estado_ticket FROM ticket WHERE id_ticket = :id");
+            $stmt->execute([':id' => $ticketId]);
+            $estadoActualId = $stmt->fetchColumn();
+
+            // 2. Actualizar el ticket (estado + operador asignado)
+            $stmt = $pdo->prepare("
+                UPDATE ticket 
+                SET id_estado_ticket = :nuevo,
+                    id_operador_asignado = :operador,
+                    actualizado_en = NOW()
+                WHERE id_ticket = :id
+            ");
+            $stmt->execute([
+                ':nuevo'    => $nuevoEstadoId,
+                ':operador' => $operadorId,
+                ':id'       => $ticketId
+            ]);
+
+            // 3. Registrar en historial
+            $stmt = $pdo->prepare("
+                INSERT INTO ticket_entrada (
+                    id_ticket, id_autor, texto, id_estado_anterior, id_estado_nuevo
+                ) VALUES (
+                    :ticket, :autor, :texto, :ant, :nue
+                )
+            ");
+            $stmt->execute([
+                ':ticket' => $ticketId,
+                ':autor'  => $operadorId,
+                ':texto'  => $comentario ?: 'Cambio de estado',
+                ':ant'    => $estadoActualId,
+                ':nue'    => $nuevoEstadoId
+            ]);
+
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+ * Método exclusivo para el USUARIO: aceptar o denegar solución
+ * Solo cambia el estado, NO toca el operador asignado
+ */
+    public static function usuarioCambiarEstado(int $ticketId, int $nuevoEstadoId, int $usuarioId, string $comentario = '')
+    {
+        $pdo = self::connection();
+
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Obtener estado actual
+            $stmt = $pdo->prepare("SELECT id_estado_ticket FROM ticket WHERE id_ticket = :id");
+            $stmt->execute([':id' => $ticketId]);
+            $estadoActualId = $stmt->fetchColumn();
+
+            // 2. Actualizar SOLO el estado (NO toca id_operador_asignado)
+            $stmt = $pdo->prepare("
+                UPDATE ticket 
+                SET id_estado_ticket = :nuevo,
+                    actualizado_en = NOW()
+                WHERE id_ticket = :id
+            ");
+            $stmt->execute([
+                ':nuevo' => $nuevoEstadoId,
+                ':id'    => $ticketId
+            ]);
+
+            // 3. Registrar en historial
+            $stmt = $pdo->prepare("
+                INSERT INTO ticket_entrada (
+                    id_ticket, id_autor, texto, id_estado_anterior, id_estado_nuevo
+                ) VALUES (
+                    :ticket, :autor, :texto, :ant, :nue
+                )
+            ");
+            $stmt->execute([
+                ':ticket' => $ticketId,
+                ':autor'  => $usuarioId,
+                ':texto'  => $comentario ?: 'Cambio de estado por el usuario',
+                ':ant'    => $estadoActualId,
+                ':nue'    => $nuevoEstadoId
+            ]);
+
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
 }
